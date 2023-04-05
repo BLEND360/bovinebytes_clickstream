@@ -11,11 +11,12 @@ def fetchData(start_date,end_date,destination_bucket, destination_directory, tab
     # Get job status from response JSON
         data = response.json()
         jobID = data['job_id']
+        statusCheck(jobID)
         return jobID
     else:
         print("Error:", response.text)
 
-    statusCheck(jobID)
+
 
 def statusCheck(jobID):
     response = data_fetch.checkStatus(job = jobID)
@@ -46,11 +47,11 @@ if choice == 1:
 
     # Prompt user to input start date
     start_date_str = input("Please enter the start date (YYYY-MM-DD): ")
-    start_date = datetime.datetime.strptime(start_date_str, "%Y-%m-%d")
+    start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
 
     # Prompt user to input end date
     end_date_str = input("Please enter the end date (YYYY-MM-DD): ")
-    end_date = datetime.datetime.strptime(end_date_str, "%Y-%m-%d")
+    end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
 
     # Prompt user to input destination bucket
     dest_bucket = input("Please enter the destination bucket: ")
