@@ -1,6 +1,27 @@
 # Data Warehousing Project
 This repository contains the source code for a data warehousing project developed for a client. The project is designed to store, process, and analyze transactional data related to sales of products. The repository contains code for both data processing and querying.
 
+## Imports
+
+```
+import datetime
+import pandas as pd
+from pyspark.sql import SparkSession
+import time
+from pyspark.sql.window import Window
+from pyspark.sql.functions import from_unixtime, from_utc_timestamp, current_timestamp, year, month, sum, current_date, date_sub, round, when, lag, col, max, min, desc
+```
+
+## Running the Code
+To run the code, you can use the following commands:
+
+```
+python source-bronze-incremental.py
+python bronze-silver-incremental.py
+python silver-gold-incremental.py
+python query-layer.py
+```
+
 ## Architecture
 The project is built using a cloud-based architecture. The data is stored in a Delta Lake format in an Amazon S3 bucket, which provides durability and scalability. The data processing is done using Apache Spark, which is a distributed computing framework designed for big data processing. The code is written in Python, and the Spark code is executed using PySpark. The processed data is stored in a separate Delta Lake table in the same S3 bucket.
 
