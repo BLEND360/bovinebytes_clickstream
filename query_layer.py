@@ -13,6 +13,8 @@ from pyspark.sql.functions import from_unixtime, from_utc_timestamp, current_tim
 
 # COMMAND ----------
 
+spark = SparkSession.builder.appName("myApp").getOrCreate()
+
 gold_df_transactions = spark.read.format("delta").load("s3://allstar-training-bovinebytes/gold/transactions/")
 # Filter the DataFrame to include only transactions from the past three years
 # Get the last day of the previous month
@@ -29,6 +31,7 @@ last_day_of_this_month = datetime.date(now.year, now.month, 1) + pd.offsets.Mont
 # print(last_day_of_last_month)
 # print(now.day)
 # Filter the DataFrame to only include rows where the date column is from a completed month
+gold_df_transactions = gold_df_transactions.filter(gold_df_transactions.product_id == "product0")
 if now.day == last_day_of_this_month.day:
     df_filtered_transactions = gold_df_transactions[gold_df_transactions['date'] <= last_day_of_this_month]
 else:
@@ -81,8 +84,4 @@ sorted_sales = sorted_sales.withColumn("product_name", when(sales.product_id == 
     .when(sorted_sales.month == "11", "Nov") \
     .when(sorted_sales.month == "12", "Dec"))
 sorted_sales.select("product_name", "year", "aliased_month", "total_sales", "MoM_growth", "MoM_pct_growth").display()
-
-
-# COMMAND ----------
-
 
