@@ -8,6 +8,8 @@ from pyspark.sql.functions import from_unixtime, from_utc_timestamp, current_tim
 
 # COMMAND ----------
 
+spark = SparkSession.builder.appName("myApp").getOrCreate()
+
 silver_df_transactions = spark.read.format("delta").load("s3://allstar-training-bovinebytes/silver/transactions/")
 silver_df_products = spark.read.format("delta").load("s3://allstar-training-bovinebytes/silver/products/")
 
@@ -18,8 +20,8 @@ from pyspark.sql.functions import year, month
 # Assume you have a PySpark DataFrame named "df" with a date column named "date_column"
 
 # Extract the year and month from the date column
-df_mod_transactions = silver_df_transactions.withColumn('year', year(df_filtered_transactions['date']))
-df_mod_transactions = df_mod_transactions.withColumn('month', month(df_filtered_transactions['date']))
+df_mod_transactions = silver_df_transactions.withColumn('year', year(silver_df_transactions['date']))
+df_mod_transactions = df_mod_transactions.withColumn('month', month(df_mod_transactions['date']))
 
 # COMMAND ----------
 
@@ -43,12 +45,5 @@ df_grouped_transactions = df_grouped_transactions.withColumn(
 )
 
 df_grouped_transactions.write.format("delta").partitionBy("date").mode("append").save("s3://allstar-training-bovinebytes/gold/transactions")
-
-
-# COMMAND ----------
-
-silver_df_transactions.orderBy('date').display()
-
-# COMMAND ----------
 
 
