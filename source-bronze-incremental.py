@@ -1,143 +1,100 @@
-# Databricks notebook source
-# MAGIC %pip install blend360_all_star_clickstream_api
-
-# COMMAND ----------
-
-# Import statements
 import datetime
-from blend360_all_star_clickstream_api.datafetch import DataFetch
-import pandas as pd
-from pyspark.sql import SparkSession
 import time
-from pyspark.sql.window import Window
-from pyspark.sql.functions import from_unixtime, from_utc_timestamp, current_timestamp,year, month, sum, current_date, date_sub, round, when, lag, col
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
+import argparse
+from blend360_all_star_clickstream_api.datafetch import DataFetch
 
-# COMMAND ----------
+# Constants
+DEST_BUCKET = 'allstar-training-bovinebytes'
+TABLES_TYPE1 = ['products', 'users']
+TABLES_TYPE2 = ['transactions', 'clickstream']
 
-# Load the 'transactions' table from the 'bronze' directory and enable recursive file lookup
-spark = SparkSession.builder.appName("myApp").getOrCreate()
-df_transactions = spark.read.format("delta").load("s3://allstar-training-bovinebytes/silver/transactions/")
-df_products = spark.read.format("delta").load("s3://allstar-training-bovinebytes/silver/products/")
+def init_spark():
+    spark = SparkSession.builder.appName("myApp").getOrCreate()
+    return spark
 
-# COMMAND ----------
+def load_tables(spark):
+    df_transactions = spark.read.format("delta").load("s3://allstar-training-bovinebytes/silver/transactions/")
+    df_products = spark.read.format("delta").load("s3://allstar-training-bovinebytes/silver/products/")
+    return df_transactions, df_products
 
-df_transactions.show(5)
+def get_dates(df_transactions):
+    start_date = df_transactions.agg({"date": "max"}).collect()[0][0]
+    one_day = datetime.timedelta(days=1)
+    start_date = start_date + one_day
+    start_date = start_date.date()
 
-# COMMAND ----------
+    end_date = datetime.datetime.now().date()
+    end_date = end_date - one_day
 
-start_date = df_transactions.agg({"date": "max"}).collect()[0][0]
-one_day = datetime.timedelta(days=1)
-start_date = start_date + one_day
-start_date = start_date.date()
-print(start_date)
+    year = str(start_date.year)
+    
+    return start_date, end_date, year
 
-# COMMAND ----------
-
-print(type(start_date))
-
-# COMMAND ----------
-
-end_date = datetime.datetime.now().date()
-end_date = end_date - one_day
-print(end_date)
-
-# COMMAND ----------
-
-data_fetch = DataFetch(secret_scope='my-scope',key_name='api-key')
-
-def fetchData(start_date,end_date,destination_bucket, destination_directory, table_name):
-    response = data_fetch.fetchData(start_date = start_date, end_date = end_date, destination_bucket = destination_bucket, destination_directory = destination_directory, table_name = table_name)
-    if response.status_code == 200:
-    # Get job status from response JSON
-        data = response.json()
-        jobID = data['job_id']
-  
-        print('Your JobID is ' + str(jobID) )
-        print('You can use this to check your Job Status by going to the second option from the menu.')
-        statusCheck(jobID)
-        return jobID
-    else:
-        print("Error:", response.text)
-
-# COMMAND ----------
-
-def statusCheck(jobID):
-    response = data_fetch.checkStatus(job_id = str(jobID))
+def fetch_data(data_fetch, start_date, end_date, table_name, dest_bucket, dest_directory):
+    response = data_fetch.fetchData(
+        start_date=start_date,
+        end_date=end_date,
+        destination_bucket=dest_bucket,
+        destination_directory=dest_directory,
+        table_name=table_name
+    )
     
     if response.status_code == 200:
         data = response.json()
-        # Get job status from response JSON
+        job_id = data['job_id']
+        print(f'Your JobID is {job_id}')
+        return job_id
+    else:
+        print("Error:", response.text)
+
+def check_status(data_fetch, job_id):
+    response = data_fetch.checkStatus(job_id=str(job_id))
+    
+    if response.status_code == 200:
+        data = response.json()
         return data['execution_status']
     else:
         print("Error:", response.text)
 
-# COMMAND ----------
+def wait_for_job_completion(data_fetch, job_id):
+    while True:
+        job_status = check_status(data_fetch, job_id)
+        print(job_status)
+        if job_status == 'COMPLETE':
+            break
+        else:
+            time.sleep(10)
 
-def updateAPIKey():
-    data_fetch.updateAPIKey()
+def main(start_date, end_date):
+    spark = init_spark()
+    df_transactions, df_products = load_tables(spark)
+    start_date, end_date, year = get_dates(df_transactions)
+    data_fetch = DataFetch(secret_scope='my-scope', key_name='api-key')
 
-# COMMAND ----------
+    for table in TABLES_TYPE2:
+        print('Working on' + table)
+        dest_directory = f'bronze/{table}/{year}'
+        job_id = fetch_data(data_fetch, start_date, end_date, table, DEST_BUCKET, dest_directory)
+        wait_for_job_completion(data_fetch, job_id)
 
-def deleteAPIKey():
-    data_fetch.deleteAPIKey()
+    for table in TABLES_TYPE1:
+        print('Working on' + table)
+        dest_directory = f'bronze/{table}'
+        job_id = fetch_data(data_fetch, start_date, end_date, table, DEST_BUCKET, dest_directory)
+        wait_for_job_completion(data_fetch, job_id)
 
-# COMMAND ----------
+    df_transactions.show()
+    df_products.show()
 
-tables = ['transactions','clickstream','products','users']
-year = str(start_date.year)
-dest_bucket = 'allstar-training-bovinebytes'
-print('bronze/'+tables[0]+'/'+year)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--start_date", type=str, default="2020-01-01")
+    parser.add_argument("--end_date", type=str, default=datetime.datetime.now().strftime('%Y-%m-%d'))
+    args = parser.parse_args()
 
-# COMMAND ----------
+    start_date = datetime.datetime.strptime(args.start_date, '%Y-%m-%d').date()
+    end_date = datetime.datetime.strptime(args.end_date, '%Y-%m-%d').date()
 
-tables_type1 = ['products','users']
-tables_type2 = ['transactions','clickstream']
-year = str(end_date.year)
-dest_bucket = 'allstar-training-bovinebytes'
-
-try:
-    for each in tables_type2:
-        print(each)
-        flag = False
-        
-        dest_dir = str('bronze/'+str(each)+'/'+year)
-        jobID = fetchData(start_date= start_date, end_date=end_date, destination_bucket= dest_bucket, destination_directory= dest_dir , table_name = each)
-        
-        while not flag:
-            job_status = statusCheck(jobID) 
-            print(job_status)
-            if job_status == 'COMPLETE':
-                flag = True
-            else:
-                # Wait for 5 seconds before trying again
-                time.sleep(10)
-
-    # Continue with the next iteration of the for loop
-except Exception as e:
-        print("Error:", str(e))
-        
-
-
-# COMMAND ----------
-
-try:
-    
-    for each in tables_type1:
-        print(each)
-        flag = False
-        
-        dest_dir = str('bronze/'+str(each))
-        jobID = fetchData(start_date= start_date, end_date=end_date, destination_bucket= dest_bucket, destination_directory= dest_dir , table_name = each)
-        
-        while not flag:
-            job_status = statusCheck(jobID) 
-            print(job_status)
-            if job_status == 'COMPLETE':
-                flag = True
-            else:
-                # Wait for 5 seconds before trying again
-                time.sleep(10)
-
-    # Continue with the next iteration of the for loop
-except Exception as e:
-        print("Error:", str(e))
+    main(start_date, end_date)
