@@ -40,12 +40,18 @@ def get_dates(df_transactions):
     return start_date, end_date, year
 
 
+'''currently, data QA only works on clickstream data'''
 def data_QA_history(table = 'clickstream', layer = 'bronze'):
     source_directory = f'{PREFIX}{layer}/{table}/'
     spark = init_spark()
     df_clickstream, df_transactions, df_products = load_tables(spark)
-    start_date = df_transactions.agg({"date": "min"}).collect()[0][0]
-    end_date = df_transactions.agg({"date": "max"}).collect()[0][0]
+    if table == 'transactions':
+        start_date = df_transactions.agg({"date": "min"}).collect()[0][0]
+        end_date = df_transactions.agg({"date": "max"}).collect()[0][0]
+    elif table == 'clickstream':
+        start_date = df_clickstream.agg({"date": "min"}).collect()[0][0]
+        end_date = df_clickstream.agg({"date": "max"}).collect()[0][0]
+  
     data_fetch= DataFetch(secret_scope= "de-all-star-cowcode", key_name = "api-key")
     quality_assurance_call(data_fetch,spark,start_date, end_date, 'bronze',table, source_directory,threshold = 0.99, test = True)
 
