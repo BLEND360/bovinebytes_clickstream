@@ -13,6 +13,7 @@ from quality_assurance import *
 DEST_BUCKET = "allstar-training-cowcode"
 TABLES_TYPE1 = ['products', 'users']
 TABLES_TYPE2 = ['transactions', 'clickstream']
+LAYERS = ['bronze', 'silver', 'gold']
 #prefix is used when a copy is created for testing reasons
 PREFIX = 'bovinebytes_copy/'
 
@@ -54,6 +55,12 @@ def data_QA_history(table = 'clickstream', layer = 'bronze'):
   
     data_fetch= DataFetch(secret_scope= "de-all-star-cowcode", key_name = "api-key")
     quality_assurance_call(data_fetch,spark,start_date, end_date, 'bronze',table, source_directory,threshold = 0.99, test = True)
+
+
+def transactions_QA(layer, table, year):
+    source_directory = f'{PREFIX}{layer}/{table}/{year}'
+    spark = init_spark()
+    transactions_quality_assurance(spark,source_directory,year, table, layer)
 
 
 def main(start_date, end_date):
@@ -108,3 +115,4 @@ if __name__ == "__main__":
 
     main(start_date, end_date)
     data_QA_history()
+    transactions_QA(layer=LAYERS[0], table=TABLES_TYPE2[0], year='2022')

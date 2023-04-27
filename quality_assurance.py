@@ -171,6 +171,86 @@ def quality_assurance_call(data_fetch,spark,start_date, end_date, layer, table, 
         last_day = datetime.date(year, end_month, end_day)
 
         quality_assurance_process(data_fetch,spark,first_day, last_day, year, layer, table, source_directory,threshold, test)
+
+
+# def get_transaction_data(data_fetch, null_rows):
+#
+#     dates = null_rows.groupBy(col('utc_date')).agg(col('utc_date')).select(date_format(col('utc_date'), "yyyy-MM-dd").
+#                                                                            alias('utc_date')).orderBy(col('utc_date'))
+#     dates = dates.selectExpr("cast(utc_date as string) utc_date")
+#
+#     for i in dates.collect():
+#         job_id = fetch_data(data_fetch, i, i, "transactions", DEST_BUCKET, QA_directory)
+#         wait_for_job_completion(data_fetch, job_id)
+
+
+def write_log(null_rows, duplicate_rows, all_cols, year,spark,layer,table):
+
+    null_rows_count = null_rows.count()
+    duplicate_rows_count = duplicate_rows.count()
+    ct = datetime.datetime.now()
+    ts = ct.timestamp()
+
+    logColumns = ["date", "null_check","duplicates_check","all_cols_check"]
+
+    if null_rows_count == 0:
+        null_check = 'pass'
+    else:
+        null_check = 'fail'
+
+    if duplicate_rows_count ==0:
+        duplicates_check = 'pass'
+    else:
+        duplicates_check = 'fail'
+
+    if all_cols:
+        all_cols_check = 'pass'
+    else:
+        all_cols_check = 'fail'
+
+    log = [(ts, null_check ,duplicates_check , all_cols_check)]
+    log_table = spark.createDataFrame(data=log, schema= logColumns)
+
+    log_dir = 's3://' + DEST_BUCKET + '/' + PREFIX + layer + '/' + table + '/' + year + '/'
+    log_table.write.format("delta").mode("overwrite").save(log_dir)
+
+
+
+def check_all_cols(transactions_data):
+
+    cols = transactions_data.columns()
+    required_cols = ['email', 'items', 'order_id', 'total_item_quantity', 'total_purchase_usd', 'transaction_timestamp',
+                     'transaction_type', 'utc_date']
+
+    return cols == required_cols
+
+
+def check_null(transactions_data):
+
+    null_rows = transactions_data.filter(col('email').isNull() | col('transaction_type').isNull() |
+                                         col('total_item_quantity').isNull() | col('items').isNull() | col('utc_date').isNull()|
+                                         col('total_purchase_usd').isNull())
+
+    return null_rows
+
+def check_duplicates(transactions_data):
+
+    duplicate_rows = transactions_data.groupBy(transactions_data.columns).count().filter(col('count') > 1)
+
+    return duplicate_rows
+
+
+
+
+
+def transactions_quality_assurance(spark,source_directory, year, table, layer):
+    s3_source_directory = f's3://{DEST_BUCKET}/{source_directory}/*'
+    transactions_data = spark.read.parquet(s3_source_directory)
+    null_rows = check_null(transactions_data)
+    duplicate_rows = check_duplicates(transactions_data)
+    all_cols = check_all_cols(transactions_data)
+    write_log(null_rows, duplicate_rows,all_cols,year, spark, layer, table)
+
     
 
 
