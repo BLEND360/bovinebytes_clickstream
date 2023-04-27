@@ -96,7 +96,7 @@ def quality_assurance_process(data_fetch,spark,start_date, end_date, year, layer
     while not COMP and num_of_run < 3:
         # get a unique timestamp for the current time
         ct = datetime.datetime.now()
-        ts = ct.timestamp()
+        ts = ct.strftime('%Y%m%d_%H%M%S')
         # set up QA directory to store QA data based on table, year and timestamp
         QA_directory =  f'{PREFIX}{layer}/QA/{table}/{year}/attempt{ts}'
         job_id = fetch_data(data_fetch,start_date, end_date, table, DEST_BUCKET, QA_directory)
@@ -116,7 +116,7 @@ def quality_assurance_process(data_fetch,spark,start_date, end_date, year, layer
 
     if num_of_run > 1:
         ct = datetime.datetime.now()
-        ts = ct.timestamp()
+        ts = ct.strftime('%Y%m%d_%H%M%S')
         #set directory to store log table
         log_directory = f's3://{DEST_BUCKET}/{PREFIX}{layer}/QA/{table}/logs/{ts}/'
         #merge initial log table and QA log table together

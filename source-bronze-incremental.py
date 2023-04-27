@@ -106,5 +106,5 @@ if __name__ == "__main__":
     start_date = datetime.datetime.now().date() - datetime.timedelta(days = 1)
     end_date = datetime.datetime.now().date() - datetime.timedelta(days = 1)
 
-    # main(start_date, end_date)
+    main(start_date, end_date)
     data_QA_history()
