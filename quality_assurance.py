@@ -72,8 +72,8 @@ def check_missing_data(spark,start_date, end_date, clickstream_data,threshold, t
     # fill all those does not exist to 0
     log_table = log_table.fillna(0)
     #calculate completeness
-    log_table = log_table.withColumn("hit_completeness", round(col("num_of_hitid") / col("hits_num"),8))
-    log_table = log_table.withColumn("visitors_completeness", round(col("num_of_visid") / col("visitors_num"),8))
+    log_table = log_table.withColumn("hit_completeness", round(col("num_of_hitid") / col("hits_num"),4))
+    log_table = log_table.withColumn("visitors_completeness", round(col("num_of_visid") / col("visitors_num"),4))
     log_table = log_table.withColumn("reach_threshold", when((log_table["hit_completeness"] >= 0.99) & (log_table["visitors_completeness"] >= 0.99), True).otherwise(False))
 
     if log_table.filter(col("reach_threshold") == False).count() > 1:
