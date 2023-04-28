@@ -184,6 +184,10 @@ def quality_assurance_call(data_fetch,spark,start_date, end_date, layer, table, 
 #         wait_for_job_completion(data_fetch, job_id)
 
 
+'''
+Write the log of the transaction table QA . If a check has passed (eg no duplicates)
+then duplicates_check is set to 'pass' else 'fail'. Liekwise for the other two checks.
+'''
 def write_log(null_rows, duplicate_rows, all_cols, year,spark,layer,table):
 
     null_rows_count = null_rows.count()
@@ -211,20 +215,25 @@ def write_log(null_rows, duplicate_rows, all_cols, year,spark,layer,table):
     log = [(ts, null_check ,duplicates_check , all_cols_check)]
     log_table = spark.createDataFrame(data=log, schema= logColumns)
 
-    log_dir = 's3://' + DEST_BUCKET + '/' + PREFIX + layer + '/' + table + '/' + year + '/'
-    log_table.write.format("delta").mode("overwrite").save(log_dir)
+    log_dir = 's3://' + DEST_BUCKET + '/' + PREFIX + layer + '/' + table + '/'
+    log_table.write.format("delta").mode("append").save(log_dir)
 
-
+'''
+Check if all columns are present
+'''
 
 def check_all_cols(transactions_data):
 
-    cols = transactions_data.columns()
+    cols = sorted(transactions_data.columns)
     required_cols = ['email', 'items', 'order_id', 'total_item_quantity', 'total_purchase_usd', 'transaction_timestamp',
                      'transaction_type', 'utc_date']
 
     return cols == required_cols
 
 
+'''
+Check if any nulls in the data
+'''
 def check_null(transactions_data):
 
     null_rows = transactions_data.filter(col('email').isNull() | col('transaction_type').isNull() |
@@ -233,6 +242,9 @@ def check_null(transactions_data):
 
     return null_rows
 
+'''
+Check if any duplicates in the data
+'''
 def check_duplicates(transactions_data):
 
     duplicate_rows = transactions_data.groupBy(transactions_data.columns).count().filter(col('count') > 1)
@@ -241,7 +253,10 @@ def check_duplicates(transactions_data):
 
 
 
-
+'''
+Initial function call to read the transactions data and call functions to check if all cols are present,
+if any duplicates and if any nulls
+'''
 
 def transactions_quality_assurance(spark,source_directory, year, table, layer):
     s3_source_directory = f's3://{DEST_BUCKET}/{source_directory}/*'
