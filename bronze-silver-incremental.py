@@ -30,13 +30,13 @@ df_clickstream = spark.read.option("recursiveFileLookup", "true").parquet("s3://
 # Load the 'transactions' table from the 'bronze' directory and enable recursive file lookup
 df_transactions = spark.read.option("recursiveFileLookup", "true").parquet("s3://allstar-training-bovinebytes/bronze/transactions/")
 
-# MAGIC %md
-# MAGIC 
-# MAGIC ## TRANSFORMATION
+%md
 
-# MAGIC %md
-# MAGIC 
-# MAGIC ### CREATING USERS SILVER TABLE
+## TRANSFORMATION
+
+%md
+
+### CREATING USERS SILVER TABLE
 
 # COMMAND ----------
 
@@ -59,7 +59,7 @@ def load_users_to_silver():
 # COMMAND ----------
 
 # MAGIC %fs ls s3://allstar-training-bovinebytes/silver/users
-
+# MAGIC 
 # MAGIC %md
 # MAGIC 
 # MAGIC ### CREATING PRODUCTS SILVER TABLE
@@ -73,7 +73,7 @@ def load_products_to_silver():
     # Write the new DataFrame to a parquet file in Amazon S3
     silver_df_products_tmp.write.format("delta").mode("overwrite").save("s3://allstar-training-bovinebytes/silver/products/")
 
-    # COMMAND ----------
+# COMMAND ----------
 
     # Read parquet files from Amazon S3 for silver products table
     silver_df_products = spark.read.format("delta").load("s3://allstar-training-bovinebytes/silver/products/")
@@ -113,7 +113,7 @@ def load_transactions_to_silver():
 # COMMAND ----------
 
 # MAGIC %fs ls s3://allstar-training-bovinebytes/silver/transactions
-
+# MAGIC 
 # MAGIC %md
 # MAGIC 
 # MAGIC ### CREATING CLICKSTREAM SILVER TABLE
