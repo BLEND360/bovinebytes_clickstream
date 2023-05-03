@@ -9,7 +9,7 @@ from data_fetching import fetch_data, wait_for_job_completion
 
 '''some constants have been changed for testing'''
 # Constants
-DEST_BUCKET = "allstar-training-cowcode"
+DEST_BUCKET = "allstar-training-bovinebytes"
 TABLES_TYPE1 = ['products', 'users']
 TABLES_TYPE2 = ['transactions', 'clickstream']
 #prefix is used when a copy is created for testing reasons

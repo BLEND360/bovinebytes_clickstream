@@ -7,7 +7,7 @@ from quality_assurance import *
 
 
 # Constants
-DEST_BUCKET = "allstar-training-cowcode"
+DEST_BUCKET = "allstar-training-bovinebytes"
 TABLES_TYPE1 = ['products', 'users']
 TABLES_TYPE2 = ['transactions', 'clickstream']
 LAYERS = ['bronze', 'silver', 'gold']
@@ -37,9 +37,9 @@ def load_tables(spark):
     ----------
     Tuple of 3 dataframes: (df_clickstream, df_transactions, df_products).
     '''
-    df_transactions = spark.read.format("delta").load(f"s3://{DEST_BUCKET}/{PREFIX}silver/transactions/")
-    df_clickstream = spark.read.format("delta").load(f"s3://{DEST_BUCKET}/{PREFIX}silver/clickstream/")
-    df_products = spark.read.format("delta").load(f"s3://{DEST_BUCKET}/{PREFIX}silver/products/")
+    df_transactions = spark.read.format("delta").load(f"s3://{DEST_BUCKET}/silver/transactions/")
+    df_clickstream = spark.read.format("delta").load(f"s3://{DEST_BUCKET}/silver/clickstream/")
+    df_products = spark.read.format("delta").load(f"s3://{DEST_BUCKET}/silver/products/")
     return df_clickstream, df_transactions, df_products
 
 def get_dates(df_transactions):
@@ -77,8 +77,8 @@ def data_QA_history(table='clickstream', layer='bronze'):
     layer : str, optional, default is 'bronze'
         The name of the layer where the table is stored.
     '''
-    source_directory = f'{PREFIX}{layer}/{table}/'
-    spark = init_spark()
+    source_directory = f{layer}/{table}/'
+    #spark = init_spark()
     df_clickstream, df_transactions, df_products = load_tables(spark)
     if table == 'transactions':
         start_date = df_transactions.agg({"date": "min"}).collect()[0][0]
@@ -103,8 +103,8 @@ def transactions_QA(layer, table, year):
     year : str
         The year of the data to be quality assured.
     '''
-    source_directory = f'{PREFIX}{layer}/{table}/{year}'
-    spark = init_spark()
+    source_directory = f{layer}/{table}/{year}'
+    #spark = init_spark()
     transactions_quality_assurance(spark, source_directory, year, table, layer)
 
 
@@ -119,7 +119,7 @@ def main(start_date, end_date):
     end_date : datetime.date object
         End date for data fetching.
     '''
-    spark = init_spark()
+    #spark = init_spark()
     df_clickstream, df_transactions, df_products = load_tables(spark)
     # scope has been set to fetch data using cowcode api key
     data_fetch = DataFetch(secret_scope='de-all-star-cowcode', key_name='api-key')
@@ -138,16 +138,16 @@ def main(start_date, end_date):
             print(f"{table} data is up to date")
             continue
 
-        dest_directory = f'{PREFIX}bronze/{table}/{year}'
+        dest_directory = f'bronze/{table}/{year}'
         job_id = fetch_data(data_fetch, start_date, end_date, table, DEST_BUCKET, dest_directory)
         wait_for_job_completion(data_fetch, job_id)
         # for clickstream data, conduct QA
         if table == 'clickstream':
-            quality_assurance_call(data_fetch, spark, start_date, end_date, 'bronze', table, f'{PREFIX}bronze/{table}', 0.99)
+            quality_assurance_call(data_fetch, spark, start_date, end_date, 'bronze', table, f'bronze/{table}', 0.99)
 
     for table in TABLES_TYPE1:
         print('Working on' + table)
-        dest_directory = f'{PREFIX}bronze/{table}'
+        dest_directory = f'bronze/{table}'
         job_id = fetch_data(data_fetch, start_date, end_date, table, DEST_BUCKET, dest_directory)
         wait_for_job_completion(data_fetch, job_id)
 
