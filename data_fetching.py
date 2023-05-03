@@ -1,11 +1,8 @@
-import datetime
 import time
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, concat, countDistinct, round, when
 from pyspark.sql.types import *
-import argparse
-import json
-import requests
+
 from blend360_all_star_clickstream_api.datafetch import DataFetch
 from data_fetching import *
 

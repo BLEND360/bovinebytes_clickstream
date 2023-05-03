@@ -62,12 +62,6 @@ while x == 0 :
         # Prompt user to input table name
         table_name = input("Please enter the Table Name: ")
 
-        # Print the inputs
-        #print("Start date:", start_date)
-        #print("End date:", end_date)
-        #print("Destination bucket:", dest_bucket)
-        #print("Destination directory:", dest_directory)
-
         try:
             #Call fetchData
             jobID = fetchData(start_date= start_date, end_date=end_date, destination_bucket= dest_bucket, destination_directory= dest_directory, table_name = table_name)
@@ -116,5 +110,3 @@ while x == 0 :
     else:
         # Code block to execute if choice is not 1, 2, 3, or 4
         print("Invalid choice. Please enter a number between 1 and 5.")
-        # Add more code here as needed
-

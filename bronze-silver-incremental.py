@@ -1,16 +1,3 @@
-# Databricks notebook source
-# MAGIC %md
-# MAGIC 
-# MAGIC ## BOVINE BYTES
-# MAGIC ### MONTH OVER MONTH SALES REPORT ON BLEND360 TUMBLERS FOR THE LAST 3 YEARS
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## READ BRONZE TABLES INTO DATAFRAME
-
-# COMMAND ----------
-
 from pyspark.sql.functions import from_unixtime, from_utc_timestamp, current_timestamp, date_trunc
 from pyspark.sql.functions import max
 from pyspark.sql import SparkSession
@@ -30,15 +17,6 @@ df_clickstream = spark.read.option("recursiveFileLookup", "true").parquet("s3://
 # Load the 'transactions' table from the 'bronze' directory and enable recursive file lookup
 df_transactions = spark.read.option("recursiveFileLookup", "true").parquet("s3://allstar-training-bovinebytes/bronze/transactions/")
 
-%md
-
-## TRANSFORMATION
-
-%md
-
-### CREATING USERS SILVER TABLE
-
-# COMMAND ----------
 
 def load_users_to_silver():
     # Add new columns to the 'df_users' DataFrame to convert the Unix timestamp and add the ETL loaded timestamp
@@ -52,20 +30,6 @@ def load_users_to_silver():
 
     silver_df_users_tmp.write.format("delta").mode("overwrite").save("s3://allstar-training-bovinebytes/silver/users/")
 
-# Write the new DataFrame to a parquet file in Amazon S3
-# silver_df_users_tmp.write.mode("append").parquet("s3://allstar-training-bovinebytes/silver/users/")
-
-
-# COMMAND ----------
-
-# MAGIC %fs ls s3://allstar-training-bovinebytes/silver/users
-# MAGIC 
-# MAGIC %md
-# MAGIC 
-# MAGIC ### CREATING PRODUCTS SILVER TABLE
-
-# COMMAND ----------
-
 def load_products_to_silver():
     # Add a new column to the 'df_products' DataFrame to add the ETL loaded timestamp
     silver_df_products_tmp = df_products.withColumn("etl_loaded_at", from_utc_timestamp(current_timestamp(), "UTC"))
@@ -73,18 +37,8 @@ def load_products_to_silver():
     # Write the new DataFrame to a parquet file in Amazon S3
     silver_df_products_tmp.write.format("delta").mode("overwrite").save("s3://allstar-training-bovinebytes/silver/products/")
 
-# COMMAND ----------
-
     # Read parquet files from Amazon S3 for silver products table
     silver_df_products = spark.read.format("delta").load("s3://allstar-training-bovinebytes/silver/products/")
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC 
-# MAGIC ### CREATING TRANSACTIONS SILVER TABLE
-
-# COMMAND ----------
 
 # Create a new DataFrame that combines information from 'df_transactions' and 'df_products'
 
@@ -110,15 +64,8 @@ def load_transactions_to_silver():
         # Write the new DataFrame to a partquet file in Amazon S3
         silver_df_transactions_tmp.write.format("delta").partitionBy("date").mode("append").save("s3://allstar-training-bovinebytes/silver/transactions")
 
-# COMMAND ----------
 
-# MAGIC %fs ls s3://allstar-training-bovinebytes/silver/transactions
-# MAGIC 
-# MAGIC %md
-# MAGIC 
-# MAGIC ### CREATING CLICKSTREAM SILVER TABLE
-
-# COMMAND ----------
+# CREATING CLICKSTREAM SILVER TABLE
 
 def load_clickstream_to_silver():
     silver_df_clickstream_get_max = spark.read.format("delta").load("s3://allstar-training-bovinebytes/silver/clickstream/")
@@ -143,9 +90,6 @@ def load_clickstream_to_silver():
         silver_df_clickstream_tmp.write.format("delta").partitionBy("date").mode("append").save("s3://allstar-training-bovinebytes/silver/clickstream")
     else:
         print("No new data")
-
-
-# COMMAND ----------
 
 if __name__ == '__main__':
     load_users_to_silver()

@@ -5,7 +5,7 @@ from pyspark.sql.functions import col, concat, countDistinct, round, when
 from pyspark.sql.types import *
 import json
 import requests
-from data_fetching import fetch_data, check_status, wait_for_job_completion
+from data_fetching import fetch_data, wait_for_job_completion
 
 '''some constants have been changed for testing'''
 # Constants
@@ -36,7 +36,6 @@ def check_missing_data(spark,start_date, end_date, clickstream_data,threshold, t
     StructField("hits_num", IntegerType(), True),
     StructField("visitors_num", IntegerType(), True)])
     
-    #StructField("reach_threshold", BooleanType(), True)
     COMP = True
     logs = []
     #get count of hits and visitors
@@ -109,7 +108,6 @@ def quality_assurance_process(data_fetch,spark,start_date, end_date, year, layer
         COMP, QA_log_table = check_missing_data(spark,start_date,end_date,merged_data,threshold, test)
         num_of_run += 1
     
-
     # get the difference between merged_data and original fetched data, and store the rows that exist in merged_data but not in bronze layer into bronze layer
     difference = merged_data.subtract(clickstream_data)
     difference.write.mode("append").parquet(f's3://{DEST_BUCKET}/{source_directory}/{year}')
@@ -171,18 +169,6 @@ def quality_assurance_call(data_fetch,spark,start_date, end_date, layer, table, 
         last_day = datetime.date(year, end_month, end_day)
 
         quality_assurance_process(data_fetch,spark,first_day, last_day, year, layer, table, source_directory,threshold, test)
-
-
-# def get_transaction_data(data_fetch, null_rows):
-#
-#     dates = null_rows.groupBy(col('utc_date')).agg(col('utc_date')).select(date_format(col('utc_date'), "yyyy-MM-dd").
-#                                                                            alias('utc_date')).orderBy(col('utc_date'))
-#     dates = dates.selectExpr("cast(utc_date as string) utc_date")
-#
-#     for i in dates.collect():
-#         job_id = fetch_data(data_fetch, i, i, "transactions", DEST_BUCKET, QA_directory)
-#         wait_for_job_completion(data_fetch, job_id)
-
 
 '''
 Write the log of the transaction table QA . If a check has passed (eg no duplicates)
