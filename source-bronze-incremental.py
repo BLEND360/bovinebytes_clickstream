@@ -12,7 +12,7 @@ TABLES_TYPE1 = ['products', 'users']
 TABLES_TYPE2 = ['transactions', 'clickstream']
 LAYERS = ['bronze', 'silver', 'gold']
 
-PREFIX = 'bovinebytes_copy/'
+PREFIX = 'bovinebytes_logs/'
 
 def init_spark():
     '''
@@ -131,12 +131,10 @@ def main(start_date, end_date):
             start_date, end_date, year = get_dates(df_clickstream)
         elif table == 'transactions':
             start_date, end_date, year = get_dates(df_transactions)
-            continue
 
         # if data is up to date, skip the job
         if (datetime.datetime.now().date() - start_date).days <= 0:
             print(f"{table} data is up to date")
-            continue
 
         dest_directory = f'bronze/{table}/{year}'
         job_id = fetch_data(data_fetch, start_date, end_date, table, DEST_BUCKET, dest_directory)
@@ -150,9 +148,6 @@ def main(start_date, end_date):
         dest_directory = f'bronze/{table}'
         job_id = fetch_data(data_fetch, start_date, end_date, table, DEST_BUCKET, dest_directory)
         wait_for_job_completion(data_fetch, job_id)
-
-    df_transactions.show()
-    df_products.show()
 
 if __name__ == "__main__":
     start_date = datetime.datetime.now().date() - datetime.timedelta(days=1)

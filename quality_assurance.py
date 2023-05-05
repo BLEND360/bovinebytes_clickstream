@@ -134,7 +134,6 @@ def quality_assurance_process(data_fetch,spark,start_date, end_date, year, layer
         #store log table into s3 bucket
         log_table.write.format("delta").mode("overwrite").save(log_directory)
         print(f'log file for timeframe {start_date} to {end_date} was saved to {log_directory}.')
-        log_table.display()
     else:
         print('Initial data meet expectation, no reloading performed.')
 

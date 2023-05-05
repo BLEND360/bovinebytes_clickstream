@@ -62,5 +62,7 @@ sorted_sales = sorted_sales.withColumn("aliased_month",
                                        .when(sorted_sales.month == "11", "Nov")
                                        .when(sorted_sales.month == "12", "Dec"))
 
-# Display the final DataFrame
-sorted_sales.select("product_name", "year", "aliased_month", "total_sales", "MoM_growth", "MoM_pct_growth").show()
+# Write the final DataFrame
+sorted_sales.select("product_name", "year", "aliased_month", "total_sales", "MoM_growth", "MoM_pct_growth")
+    .write.format("delta")
+    .save('s3://allstar-training-bovinebytes/sales_report/2023')
