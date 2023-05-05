@@ -77,8 +77,8 @@ def data_QA_history(table='clickstream', layer='bronze'):
     layer : str, optional, default is 'bronze'
         The name of the layer where the table is stored.
     '''
-    source_directory = f{layer}/{table}/'
-    #spark = init_spark()
+    source_directory = 'f{layer}/{table}/'
+    spark = init_spark()
     df_clickstream, df_transactions, df_products = load_tables(spark)
     if table == 'transactions':
         start_date = df_transactions.agg({"date": "min"}).collect()[0][0]
@@ -103,8 +103,8 @@ def transactions_QA(layer, table, year):
     year : str
         The year of the data to be quality assured.
     '''
-    source_directory = f{layer}/{table}/{year}'
-    #spark = init_spark()
+    source_directory = 'f{layer}/{table}/{year}'
+    spark = init_spark()
     transactions_quality_assurance(spark, source_directory, year, table, layer)
 
 
@@ -119,7 +119,7 @@ def main(start_date, end_date):
     end_date : datetime.date object
         End date for data fetching.
     '''
-    #spark = init_spark()
+    spark = init_spark()
     df_clickstream, df_transactions, df_products = load_tables(spark)
     # scope has been set to fetch data using cowcode api key
     data_fetch = DataFetch(secret_scope='de-all-star-cowcode', key_name='api-key')
